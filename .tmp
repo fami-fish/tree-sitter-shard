@@ -1,0 +1,23 @@
+    org: ($) => seq("---", $.int, "---"),
+    label: ($) =>
+      seq(
+        field("name", $.ident),
+        optional(seq("@", field("address", $.int))),
+        ":",
+      ),
+    data: ($) =>
+      seq(
+        choice(
+          seq("const", "{", sep(repeat1("\n"), $.static_assign), "}"),
+          seq("static", "{", sep(repeat1("\n"), $.static_assign), "}"),
+          seq("init", "{", sep(repeat1("\n"), $.declare), "}"),
+        ),
+      ),
+    assign: ($) =>
+      seq(/[%;]/, field("left", $.ident), $.type, "=", field("right", $._expr)),
+    static_assign: ($) => seq($.ident, $.type, "=", $._expr),
+    declare: ($) => seq($.ident, $.type),
+
+    comment: () =>
+      choice(seq("//", /.*/), seq("/*", /[^*]*\*+([^/*][^*]*\*+)*/, "/")),
+    float: () => /-?[0-9][0-9_]*\.[0-9][0-9_]*/,

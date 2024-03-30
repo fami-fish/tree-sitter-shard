@@ -1,0 +1,45 @@
+program = ({statement, {'\n'}, '\n'} | statement), 'EOF';
+
+statement = loop | function | data | mutation | assign | label | org | if | macro;
+
+if = '(', expr, ')',  (('{', {statement, {'\n'}}, '}', ['\n'], '?', ['\n'], '{', {statement, {'\n'}}, '}') | statement);
+
+loop = 'loop', ((if | '{', ['\n'], {statement, {'\n'}}, '}') | statement), [['\n'], 'then', ['\n'], statement];
+
+macro = '#', ((ident, type, '=', expr) | function_body);
+
+function = function_attributes, '\n', function_body;
+function_attributes = '|', ?no space?, ('inline', 'ignore'), ?no space?, '|';
+function_body = ident, {ident, type}, ['->', type], '{', ['\n'], {statement, {'\n'}}, '}';
+
+org = '---', hex_intager, '---';
+label = ident, ':', ['@', hex_intager];
+
+data = (((('init' | 'struct'), '{', {ident, type, '\n'}, ident, type) | (('init' | 'struct'), '{', {ident, type, '=', expr, '\n'}, ident, type, '=', expr))), {'\n'}, '}' | (('init' | 'struct'), ident, type) | (('const' | 'static',), ident, type, '=', expr);
+mutation = "'", ?no ws?, (ident, [{'->', ident | '.', ident}] | deref);
+
+assign = ('%' | ';'), ?no w?,s ident, [type, ?no ws?], '=', expr;
+
+deref = '[', expr, ']';
+
+expr = ( '{', {expr, ','}, expr, '}' | '(',expr, ')') | deref | literal | expr, [type, ?no ws?], op, expr | op, expr | expr, op;
+
+identifier = ?/[a-zA-Z0-9][a-zA-Z0-9_]*/?;
+type = ?/[fs][1248]/? | identifier;
+
+literal = string | float_literal | intager_literal;
+
+string = ?C string literal?;
+
+
+float_literal = (denary_intager, 'f') | ([denary_intager], '.', denary_intager, 'f') | (denary_intager, '.', denary_intager, ['f']);
+
+intager_literal = ['-' | '+'], (('0b', hex_intager) | ('0b', binary_intager) | denary_intager);
+
+hex_intager = hex_digit, {hex_digit | '_'};
+binary_intager = hex_digit, {hex_digit | '_'};
+denary_intager = digit, {digit | '_'};
+
+hex_digit = ?/[0-9a-zA-Z]/?;
+digit = ?/[0-9]/?;
+binary_digit = '0' | '1';

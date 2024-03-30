@@ -1,0 +1,135 @@
+const PREC = {
+  program: 19,
+  statement: 18,
+  expr: 17,
+
+  paren: 16,
+  /* ++ and -- (post)
+   * .  array index
+   * -> member access
+   * { } struct/array declaration
+   */
+  postfix: 14,
+  /* ++ and -- (pre)
+   * unary - and +
+   * ~ logical NOT
+   * ~~ bitwize NOT
+   * & adress of
+   * size <shit>
+   */
+  prefix: 13,
+  multiplicative: 12,
+  additive: 11,
+  bitshift: 10,
+  relational: 9,
+  equality: 8,
+  bitand: 7,
+  bitxor: 6,
+  bitor: 5,
+  logical_and: 4,
+  logical_xor: 3,
+  logical_or: 2,
+  assignment: 1,
+};
+
+module.exports = grammar({
+  name: "shard",
+
+  extras: ($) => [/ |\t|\r/, $.comment],
+  word: ($) => $.ident,
+  rules: {
+    program: ($) => prec(PREC.program, sep(repeat1("\n"), $.statement)),
+
+    statement: ($) => choice($.data, $.label, $.org, $.assign, $._expr),
+
+
+    binary_expr: ($) =>
+      choice(
+        prec.left(
+          PREC.postfix,
+          seq($._expr, token.immediate("->"), token.immediate($.ident)),
+        ),
+        prec.left(
+          PREC.postfix,
+          seq($._expr, token.immediate("."), token.immediate($.int)),
+        ),
+        ...[
+          ["*", PREC.multiplicative],
+          ["/", PREC.multiplicative],
+          ["%", PREC.multiplicative],
+
+          ["-", PREC.additive],
+          ["+", PREC.additive],
+
+          [">>", PREC.bitshift],
+          ["<<", PREC.bitshift],
+
+          ["<=", PREC.relational],
+          [">=", PREC.relational],
+          ["<", PREC.relational],
+          [">", PREC.relational],
+
+          ["==", PREC.equality],
+          ["~=", PREC.equality],
+
+          ["&", PREC.bitand],
+          ["^", PREC.bitxor],
+          ["|", PREC.bitor],
+
+          ["&&", PREC.logical_and],
+          ["^^", PREC.logical_xor],
+          ["||", PREC.logical_or],
+        ].map(([op, precedence]) =>
+          prec.left(precedence, seq($._expr, optional($.ident), token.immediate(op), $._expr)),
+        ),
+        ...[
+          ["*=", PREC.assignment],
+          ["/=", PREC.assignment],
+          ["%=", PREC.assignment],
+          ["+=", PREC.assignment],
+          ["-=", PREC.assignment],
+          ["<<=", PREC.assignment],
+          [">>=", PREC.assignment],
+          ["&=", PREC.assignment],
+          ["^=", PREC.assignment],
+          ["|=", PREC.assignment],
+        ].map(([op, precedence]) =>
+          prec.right(precedence, seq($._expr, optional($.ident), token.immediate(op), $._expr)),
+        ),
+      ),
+
+    literal: ($) => choice($.float, $.int),
+
+    ident: ($) => /[a-zA-Z_][a-zA-Z0-9_]*/,
+    float: () => /-?[0-9][0-9_]*\.[0-9][0-9_]*/,
+    int: () =>
+      choice(/-?[0-9][0-9_]*/, /0x[0-9a-fA-F][0-9a-fA-F]*/, /0b[01][01_]*/),
+
+    org: ($) => seq("---", $.int, "---"),
+    label: ($) =>
+      seq(
+        field("name", $.ident),
+        optional(seq("@", field("address", $.int))),
+        ":",
+      ),
+    data: ($) =>
+      seq(
+        choice(
+          seq("const", "{", sep(repeat1("\n"), $.static_assign), "}"),
+          seq("static", "{", sep(repeat1("\n"), $.static_assign), "}"),
+          seq("init", "{", sep(repeat1("\n"), $.declare), "}"),
+        ),
+      ),
+    assign: ($) =>
+      seq(/[%;]/, field("left", $.ident), $.type, "=", field("right", $._expr)),
+    static_assign: ($) => seq($.ident, $.ident, token.immediate("=", $._expr),
+    declare: ($) => seq($.ident, $.type),
+
+    comment: () =>
+      choice(seq("//", /.*/), seq("/*", /[^*]*\*+([^/*][^*]*\*+)*/, "/")),
+  },
+});
+
+function sep(separator, rule) {
+  return optional(seq(rule, repeat(seq(separator, rule)), optional(separator)));
+}

@@ -1,0 +1,33 @@
+init CONSTANT f4
+
+const {
+    WORLDNAME [1] = "earth" 0
+    MAX_WORLD_LEN 8 = 16
+}
+
+struct Coordinate {
+  x f4
+  y f4
+}
+
+struct Pos {
+  world [1]
+  coord Coordinate
+}
+/* since both sides of the operator are the same size, 
+sizeof(void*) == sizeof(Pos*), we can omit the cast */
+%pos [Pos] = $malloc Pos /* recall that this is an implicit sizeof(Pos) */
+/* `->` works the same as in c. [pos->coord] is equal to the value stored at 
+pos->coord. We cast both sides to coordinate since we dont know what struct is 
+being initialized */
+'[pos->coord] Coordinate = { 0.69, 42.0 }
+/* Here, we dont use brackets meaning were setting the pointer `world`, not the
+value at pos->world. void* is again implicitly cast */
+'pos->world = $malloc MAX_WORLD_LEN
+/* self explanitory provided you know c */
+$strncpy pos->world, WORLDNAME, MAX_WORLD_LEN 
+
+/* This destructures pos and coord by dereferencing the pointer pos->world->x 
+and both sides are cast as an f4 meaning the type of x is f4. */
+%x f4 = [pos->coord->x]
+%y f4 = [pos->coord->y]

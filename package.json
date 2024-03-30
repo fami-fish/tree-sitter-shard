@@ -1,0 +1,30 @@
+{
+  "name": "tree-sitter-shard",
+  "version": "1.0.0",
+  "author": "",
+  "description": "Tree-sitter grammar for Shard",
+  "main": "bindings/node",
+  "scripts": {
+    "build": "tree-sitter generate && node-gyp build"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "nan": "^2.18.0"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.20.8"
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.shard",
+      "file-types": [
+        "shard",
+        "shd",
+        "shr"
+      ],
+      "highlights": [
+        "queries/highlights.scm"
+      ]
+    }
+  ]
+}
